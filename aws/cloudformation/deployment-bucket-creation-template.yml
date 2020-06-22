@@ -1,0 +1,19 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: For aws training - week 5
+Parameters:
+  DeploymentBucketName:
+    Description: Deployment Bucket Name
+    Default: yyl-deployment-bucket
+    Type: String
+
+Resources:
+  DeploymentBucket:
+    Type: AWS::S3::Bucket
+    Properties: 
+      BucketName: !Ref DeploymentBucketName
+
+Outputs:
+  DeploymentBucketName:
+    Description: Deployment Bucket
+    Value: !Ref DeploymentBucketName
+  

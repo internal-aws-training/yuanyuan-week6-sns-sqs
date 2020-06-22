@@ -1,0 +1,12 @@
+#!/bin/bash
+set -euo pipefail
+cd $(dirname $0)/..
+
+source ./auto/set-env
+display_status "Package local lambdafunction to ${DEPLOYMENT_BUCKET_NAME} backage and output the tranformed template ${PACKAGED_TEMPLATE} to ${TEMPLATE_URL} folder"
+
+aws cloudformation package \
+  --template-file ${TEMPLATE_URL}/${TEMPLATE} \
+  --s3-bucket ${DEPLOYMENT_BUCKET_NAME} \
+  --s3-prefix lambda/week5 \
+  --output-template-file ${TEMPLATE_URL}/${PACKAGED_TEMPLATE}

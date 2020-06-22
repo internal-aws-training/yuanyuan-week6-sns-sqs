@@ -1,0 +1,10 @@
+STACK_NAME=yyl-week6-stack
+DEPLOYMENT_BUCKET_NAME=yyl-deployment-bucket
+TEMPLATE=template.yml
+TEMPLATE_URL=./aws/cloudformation
+PACKAGED_TEMPLATE=packaged-${TEMPLATE}
+REGION=ap-southeast-1
+
+display_status() {
+  echo ">>> $1 <<<" 1>&2
+}

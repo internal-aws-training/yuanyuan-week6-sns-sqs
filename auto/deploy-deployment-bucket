@@ -1,0 +1,11 @@
+#!/bin/bash
+set -euo pipefail
+cd $(dirname $0)/..
+
+DEPLOYMENT_STACK_NAME=yyl-deployment-stack
+echo ">>>Deploy ${DEPLOYMENT_STACK_NAME} stack<<<"
+
+aws cloudformation deploy \
+  --template-file ./aws/cloudformation/deployment-bucket-creation-template.yml \
+  --stack-name ${DEPLOYMENT_STACK_NAME} \
+  --capabilities CAPABILITY_NAMED_IAM

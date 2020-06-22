@@ -1,0 +1,19 @@
+#!/bin/bash
+set -euo pipefail
+cd $(dirname $0)/..
+
+source ./auto/set-env
+
+display_status "1) Build lambda function image"
+IMAGE_NAME=yyl-week6-basic-lambda-function-image
+docker build -t ${IMAGE_NAME} .
+
+display_status "2) Build lambda function to local 'output' folder"
+docker run \
+  -v $(pwd)/output:/output \
+  --name yyl-week6-basic-lambda-function-container \
+  --rm \
+  ${IMAGE_NAME} \
+  sh -c "cp -r /app/* /output"
+
+

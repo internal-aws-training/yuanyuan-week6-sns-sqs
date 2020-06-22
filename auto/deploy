@@ -1,0 +1,19 @@
+#!/bin/bash
+set -euo pipefail
+cd $(dirname $0)/..
+
+source ./auto/set-env
+
+display_status "Step 1"
+./auto/build
+
+display_status "Step 2"
+./auto/package
+
+display_status "Step 3"
+display_status "Deploy ${STACK_NAME} stack"
+
+aws cloudformation deploy \
+  --template-file ${TEMPLATE_URL}/${PACKAGED_TEMPLATE} \
+  --stack-name ${STACK_NAME} \
+  --capabilities CAPABILITY_NAMED_IAM

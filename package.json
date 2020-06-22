@@ -1,0 +1,22 @@
+{
+  "name": "yuanyuan-week5-lambda",
+  "version": "1.0.0",
+  "description": "repo for aws-training week5 homework",
+  "main": "index.js",
+  "scripts": {
+    "local-test": "node index.local.test.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/internal-aws-training/yuanyuan-week5-lambda.git"
+  },
+  "author": "yuanyuan.lin",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/internal-aws-training/yuanyuan-week5-lambda/issues"
+  },
+  "homepage": "https://github.com/internal-aws-training/yuanyuan-week5-lambda#readme",
+  "devDependencies": {
+    "eslint": "^7.0.0"
+  }
+}
