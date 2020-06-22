@@ -42,22 +42,6 @@ Parameters:
     Description: Policy Name
     Default: yyl-week6-lambda-policy-cloudWatch
     Type: String
-  
-  
-  # LambdaMetricsAlarmName:
-  #   Description: Lambda Metrics Alarm Name
-  #   Default: yyl-week6-alarm-sns-topic
-  #   Type: String
-  # CloudWatchMetricsNamespaceName:
-  #   Description: CloudWatch Metrics Namespace Name
-  #   Type: String
-  #   Default: yyl-week6-cloudWatch-metrics-namespace
-  # LambdaMetricName:
-  #   Description: CloudWatch Metric Name
-  #   Type: String
-  #   Default: metrics-for-lambda
-  
-  
 
 Resources:
   CloudWatchEventRole:
@@ -84,13 +68,6 @@ Resources:
   MyMessageQueue:
     Type: AWS::SQS::Queue
     Properties: 
-      # Unknown Attribute ContentBasedDeduplication. (Service: AmazonSQS; Status Code: 400; Error Code: InvalidAttributeName; Request ID: acabe6d7-4f40-5827-9e9a-b1bd5e5dfb77)
-      # ContentBasedDeduplication: true
-      # The name of a FIFO queue can only include alphanumeric characters, hyphens, or underscores, must end with .fifo suffix and be 1 to 80 in length. (Service: AmazonSQS; Status Code: 400; Error Code: InvalidParameterValue; Request ID: bb45399d-60d6-5089-a90b-6ef76f24ec08)
-      # FifoQueue: true
-      # KmsDataKeyReusePeriodSeconds: 300
-      # KmsMasterKeyId: String
-      # MaximumMessageSize: Integer
       # 保留消息7天(=60*60*24*7)
       MessageRetentionPeriod: 604800
       QueueName: !Ref MessageQueueName
@@ -108,6 +85,25 @@ Resources:
     Properties:
       QueueName: !Ref DeadLetterQueueName
 
+  QueuePolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - sns.amazonaws.com
+            Action:
+              - sqs:SendMessage
+            Resource: !GetAtt MyMessageQueue.Arn
+            Condition:
+              ArnEquals:
+                aws:SourceArn: !Ref MySNSTopic
+      Queues:
+        - !Ref MyMessageQueue
+        
   LambdaLogGroup:
     Type: AWS::Logs::LogGroup
     Properties: 
@@ -151,14 +147,6 @@ Resources:
                   - logs:CreateLogStream
                   - logs:PutLogEvents
                 Resource: arn:aws:logs:*:*:log-group:/aws/lambda/*:*
-        # - PolicyName: !Ref LambdaPolicyForCloudWatchName
-        #   PolicyDocument:
-        #     Version: 2012-10-17
-        #     Statement:
-        #       - Effect: Allow
-        #         Action:
-        #           - cloudwatch:PutMetricData
-        #         Resource: "*"
         - PolicyName: !Ref LambdaPolicyForSQSName
           PolicyDocument:
             Version: 2012-10-17
@@ -173,48 +161,6 @@ Resources:
   LambdaEventSourceMapping:
     Type: AWS::Lambda::EventSourceMapping
     Properties: 
-      # SQS单个批次中检索的最大项目数: 默认值为 10, 最大值为 10。
-      # BatchSize: 10
-      # BisectBatchOnFunctionError: Boolean
-      # DestinationConfig: 
-      #   DestinationConfig
-      # Enabled: Boolean
       EventSourceArn: !GetAtt MyMessageQueue.Arn
       FunctionName: !Ref MyLambda
-      # MaximumBatchingWindowInSeconds: Integer
-      # MaximumRecordAgeInSeconds: Integer
-      # MaximumRetryAttempts: Integer
-      # ParallelizationFactor: Integer
-      # StartingPosition: String
-  
-  # PermissionForSQSToInvokeLambda: 
-  #   Type: AWS::Lambda::Permission
-  #   Properties: 
-  #     FunctionName: !GetAtt MyLambda.Arn
-  #     Action: lambda:InvokeFunction
-  #     Principal: sqs.amazonaws.com
-  #     SourceArn: !GetAtt MyMessageQueue.Arn
-
-  # CloudWatchAlarm:
-  #   Type: AWS::CloudWatch::Alarm
-  #   DependsOn:
-  #     - SNSTopic
-  #   Properties:
-  #     AlarmActions:
-  #       - !Ref SNSTopic
-  #     AlarmDescription: Lambda Invoke
-  #     AlarmName: !Ref LambdaMetricsAlarmName
-  #     ComparisonOperator: GreaterThanOrEqualToThreshold
-  #     Threshold: 2
-  #     Statistic: Sum
-  #     #应用统计数据的周期为60s
-  #     Period: 300
-  #     #每次评估时长为多少个Period, 每次评估时间为: Period * EvaluationPeriods
-  #     EvaluationPeriods: 1
-  #     MetricName: !Ref LambdaMetricName
-  #     Namespace: !Ref CloudWatchMetricsNamespaceName
-  #     #与警报关联的指标的维度。
-  #     Dimensions:
-  #       - Name: hello_world
-  #         Value: Hello World!
       

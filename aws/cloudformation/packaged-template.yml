@@ -88,6 +88,28 @@ Resources:
     Properties:
       QueueName:
         Ref: DeadLetterQueueName
+  QueuePolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - sns.amazonaws.com
+          Action:
+          - sqs:SendMessage
+          Resource:
+            Fn::GetAtt:
+            - MyMessageQueue
+            - Arn
+          Condition:
+            ArnEquals:
+              aws:SourceArn:
+                Ref: MySNSTopic
+      Queues:
+      - Ref: MyMessageQueue
   LambdaLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
@@ -107,7 +129,7 @@ Resources:
         - Arn
       Handler: index.handler
       Runtime: nodejs12.x
-      CodeUri: s3://yyl-deployment-bucket/lambda/week5/537cda5dd82a7410b9ba09902744b3ff
+      CodeUri: s3://yyl-deployment-bucket/lambda/week5/9526c7dc418b5b1ea40624f0b6eed3bf
       MemorySize: 128
       Timeout: 3
   LambdaRole:
@@ -136,15 +158,6 @@ Resources:
             - logs:CreateLogStream
             - logs:PutLogEvents
             Resource: arn:aws:logs:*:*:log-group:/aws/lambda/*:*
-      - PolicyName:
-          Ref: LambdaPolicyForCloudWatchName
-        PolicyDocument:
-          Version: 2012-10-17
-          Statement:
-          - Effect: Allow
-            Action:
-            - cloudwatch:PutMetricData
-            Resource: '*'
       - PolicyName:
           Ref: LambdaPolicyForSQSName
         PolicyDocument:
