@@ -59,11 +59,26 @@ Resources:
     Type: AWS::SNS::Topic
     Properties: 
       TopicName: !Ref SNSTopicName
-      Subscription:
-        - Endpoint: !Ref AlarmEmail
-          Protocol: email
-        - Endpoint: !GetAtt MyMessageQueue.Arn
-          Protocol: sqs
+      KmsMasterKeyId: d32a3954-b7a1-4384-904b-9265e457c8a9
+      Tags:
+        - Key: owner
+          Value: yyl
+
+  SNSEmailSubscription:
+    Type: AWS::SNS::Subscription
+    Properties: 
+      Endpoint: !Ref AlarmEmail
+      Protocol: email
+      TopicArn: !Ref MySNSTopic
+      RedrivePolicy: 
+        deadLetterTargetArn: !GetAtt MyDeadLetterQueue.Arn
+
+  SNSSqsSubscription:
+    Type: AWS::SNS::Subscription
+    Properties: 
+      Endpoint: !GetAtt MyMessageQueue.Arn
+      Protocol: sqs
+      TopicArn: !Ref MySNSTopic
     
   MyMessageQueue:
     Type: AWS::SQS::Queue
@@ -71,6 +86,7 @@ Resources:
       # 保留消息7天(=60*60*24*7)
       MessageRetentionPeriod: 604800
       QueueName: !Ref MessageQueueName
+      KmsMasterKeyId: d32a3954-b7a1-4384-904b-9265e457c8a9
       # ReceiveMessageWaitTimeSeconds: Integer
       RedrivePolicy:
         # 在超出 maxReceiveCount 值后，Amazon SQS 将消息移动到 deadletterQueue
@@ -79,11 +95,17 @@ Resources:
         maxReceiveCount: 1
       # 消息将不可用的时间长度为5分钟
       VisibilityTimeout: 300
+      Tags:
+        - Key: owner
+          Value: yyl
   
   MyDeadLetterQueue:
     Type: AWS::SQS::Queue
     Properties:
       QueueName: !Ref DeadLetterQueueName
+      Tags:
+        - Key: owner
+          Value: yyl
 
   QueuePolicy:
     Type: AWS::SQS::QueuePolicy
@@ -121,7 +143,7 @@ Resources:
       Runtime: nodejs12.x
       CodeUri: ../../output/
       MemorySize: 128
-      Timeout: 3     
+      Timeout: 3  
 
   LambdaRole:
     Type: AWS::IAM::Role
@@ -157,6 +179,9 @@ Resources:
                   - sqs:DeleteMessage
                   - sqs:GetQueueAttributes
                 Resource: !GetAtt MyMessageQueue.Arn
+      Tags:
+        - Key: owner
+          Value: yyl  
   
   LambdaEventSourceMapping:
     Type: AWS::Lambda::EventSourceMapping
