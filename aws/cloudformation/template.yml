@@ -2,8 +2,8 @@ AWSTemplateFormatVersion: 2010-09-09
 Transform: AWS::Serverless-2016-10-31
 Description: For aws training - week 6
 Parameters:
-  CloudWatchEventRoleName:
-    Description: CloudWatch Event Role Name
+  CloudWatchEventRuleName:
+    Description: CloudWatch Event Rule Name
     Default: yyl-week6-scheduled-rule
     Type: String
   AlarmEmail: 
@@ -24,7 +24,7 @@ Parameters:
     Type: String
   LambdaFunctionName:
     Description: Lambda Function Name
-    Default: yyl-week6-lambda-function-001
+    Default: yyl-week6-lambda-function
     Type: String
   LambdaRoleName:
     Description: Lambda Role Name
@@ -44,10 +44,10 @@ Parameters:
     Type: String
 
 Resources:
-  CloudWatchEventRole:
+  CloudWatchEventRule:
     Type: AWS::Events::Rule
     Properties: 
-      Name: !Ref CloudWatchEventRoleName
+      Name: !Ref CloudWatchEventRuleName
       Description: ScheduledRule in CloudWatch Event to trigger SNS Topic
       ScheduleExpression: rate(5 minutes)
       State: ENABLED
@@ -59,10 +59,25 @@ Resources:
     Type: AWS::SNS::Topic
     Properties: 
       TopicName: !Ref SNSTopicName
-      KmsMasterKeyId: d32a3954-b7a1-4384-904b-9265e457c8a9
+      # KmsMasterKeyId: d32a3954-b7a1-4384-904b-9265e457c8a9
       Tags:
         - Key: owner
           Value: yyl
+  
+  SNSTopicPolicy:
+    Type: AWS::SNS::TopicPolicy
+    Properties:
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: events.amazonaws.com
+            Action: 
+              - sns:Publish
+            Resource: !Ref MySNSTopic
+      Topics:
+        - !Ref MySNSTopic
 
   SNSEmailSubscription:
     Type: AWS::SNS::Subscription
@@ -70,8 +85,19 @@ Resources:
       Endpoint: !Ref AlarmEmail
       Protocol: email
       TopicArn: !Ref MySNSTopic
-      RedrivePolicy: 
-        deadLetterTargetArn: !GetAtt MyDeadLetterQueue.Arn
+      # RedrivePolicy: 
+      #   deadLetterTargetArn: !GetAtt MyDeadLetterQueue.Arn
+      
+      # DeliveryPolicy defines how Amazon SNS retries failed deliveries to HTTP/S endpoints.
+      # DeliveryPolicy:
+      #   healthyRetryPolicy:
+      #     numRetries: 20
+      #     minDelayTarget: 10
+      #     maxDelayTarget: 30
+      #     numMinDelayRetries: 3
+      #     numMaxDelayRetries: 17
+      #     numNoDelayRetries: 0
+      #     backoffFunction: exponential
 
   SNSSqsSubscription:
     Type: AWS::SNS::Subscription
@@ -86,7 +112,7 @@ Resources:
       # 保留消息7天(=60*60*24*7)
       MessageRetentionPeriod: 604800
       QueueName: !Ref MessageQueueName
-      KmsMasterKeyId: d32a3954-b7a1-4384-904b-9265e457c8a9
+      # KmsMasterKeyId: d32a3954-b7a1-4384-904b-9265e457c8a9
       # ReceiveMessageWaitTimeSeconds: Integer
       RedrivePolicy:
         # 在超出 maxReceiveCount 值后，Amazon SQS 将消息移动到 deadletterQueue

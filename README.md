@@ -17,6 +17,22 @@ Amazon Simple Queue Service (SQS) 是一种完全托管的消息队列服务，�
   https://aws.amazon.com/cn/sqs/
 
 # Practice
+
+### Architecture Diagram
+![Architecture Diagram](./docs/Architecture.png)
+
+### Deploy Scripts
+1. Deploy bucket for further deployment
+```
+./auto/deploy-deployment-bucket
+```
+
+2. Deploy resources for week6 homework
+```
+./auto/deploy
+```
+
+### 实现功能点
 - CloudWatch Event Role 每 5 mins 自动触发SNS的Topic
 
 - SNS 
@@ -24,11 +40,13 @@ Amazon Simple Queue Service (SQS) 是一种完全托管的消息队列服务，�
   - SNS向订阅的SQS中发送消息
   - SNS Encryption
   - SNS Tags
+  - SNS Permission
+  - DeliveryPolicy 用于定义HTTP/S endpoint的尝试机制, 因此在此例子未实现
 
 - SQS
   - 有retention(7days) / timeout(5mins)
   - SQS自动触发Lambda运行，Lambda将event的所有内容输出到CloudWatch log中
-  - SQS有DLQ
+  - SQS Subscription有DLQ
   - SQS Encryption
 
 - Tagging

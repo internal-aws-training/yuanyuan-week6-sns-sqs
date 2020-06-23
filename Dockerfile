@@ -5,4 +5,3 @@ COPY ./package*.json ./
 RUN yarn install --production
 
 COPY ./index.js .
-COPY ./src ./src

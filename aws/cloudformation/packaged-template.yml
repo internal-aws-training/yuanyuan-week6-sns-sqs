@@ -1,0 +1,219 @@
+AWSTemplateFormatVersion: 2010-09-09
+Transform: AWS::Serverless-2016-10-31
+Description: For aws training - week 6
+Parameters:
+  CloudWatchEventRuleName:
+    Description: CloudWatch Event Rule Name
+    Default: yyl-week6-scheduled-rule
+    Type: String
+  AlarmEmail:
+    Default: plin005@163.com
+    Description: Email address to notify the scheduled events
+    Type: String
+  SNSTopicName:
+    Description: SNS Topic Name
+    Default: yyl-week6-alarm-sns-topic
+    Type: String
+  MessageQueueName:
+    Description: My Message Queue Name
+    Default: yyl-week6-message-queue
+    Type: String
+  DeadLetterQueueName:
+    Description: My Dead Letter Queue Name
+    Default: yyl-week6-dead-letter-queue
+    Type: String
+  LambdaFunctionName:
+    Description: Lambda Function Name
+    Default: yyl-week6-lambda-function
+    Type: String
+  LambdaRoleName:
+    Description: Lambda Role Name
+    Default: yyl-week6-lambda-role
+    Type: String
+  LambdaPolicyForLogName:
+    Description: Lambda Policy for Log Name
+    Default: yyl-week6-lambda-policy-log
+    Type: String
+  LambdaPolicyForSQSName:
+    Description: Lambda Policy for SQS Name
+    Default: yyl-week6-lambda-policy-sqs
+    Type: String
+  LambdaPolicyForCloudWatchName:
+    Description: Policy Name
+    Default: yyl-week6-lambda-policy-cloudWatch
+    Type: String
+Resources:
+  CloudWatchEventRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name:
+        Ref: CloudWatchEventRuleName
+      Description: ScheduledRule in CloudWatch Event to trigger SNS Topic
+      ScheduleExpression: rate(5 minutes)
+      State: ENABLED
+      Targets:
+      - Arn:
+          Ref: MySNSTopic
+        Id:
+          Ref: SNSTopicName
+  MySNSTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName:
+        Ref: SNSTopicName
+      Tags:
+      - Key: owner
+        Value: yyl
+  SNSTopicPolicy:
+    Type: AWS::SNS::TopicPolicy
+    Properties:
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: events.amazonaws.com
+          Action:
+          - sns:Publish
+          Resource:
+            Ref: MySNSTopic
+      Topics:
+      - Ref: MySNSTopic
+  SNSEmailSubscription:
+    Type: AWS::SNS::Subscription
+    Properties:
+      Endpoint:
+        Ref: AlarmEmail
+      Protocol: email
+      TopicArn:
+        Ref: MySNSTopic
+  SNSSqsSubscription:
+    Type: AWS::SNS::Subscription
+    Properties:
+      Endpoint:
+        Fn::GetAtt:
+        - MyMessageQueue
+        - Arn
+      Protocol: sqs
+      TopicArn:
+        Ref: MySNSTopic
+  MyMessageQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      MessageRetentionPeriod: 604800
+      QueueName:
+        Ref: MessageQueueName
+      RedrivePolicy:
+        deadLetterTargetArn:
+          Fn::GetAtt:
+          - MyDeadLetterQueue
+          - Arn
+        maxReceiveCount: 1
+      VisibilityTimeout: 300
+      Tags:
+      - Key: owner
+        Value: yyl
+  MyDeadLetterQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName:
+        Ref: DeadLetterQueueName
+      Tags:
+      - Key: owner
+        Value: yyl
+  QueuePolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - sns.amazonaws.com
+          Action:
+          - sqs:SendMessage
+          Resource:
+            Fn::GetAtt:
+            - MyMessageQueue
+            - Arn
+          Condition:
+            ArnEquals:
+              aws:SourceArn:
+                Ref: MySNSTopic
+      Queues:
+      - Ref: MyMessageQueue
+  LambdaLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName:
+        Fn::Sub: /aws/lambda/${LambdaFunctionName}
+      RetentionInDays: 7
+  MyLambda:
+    Type: AWS::Serverless::Function
+    DependsOn:
+    - LambdaLogGroup
+    Properties:
+      FunctionName:
+        Ref: LambdaFunctionName
+      Role:
+        Fn::GetAtt:
+        - LambdaRole
+        - Arn
+      Handler: index.handler
+      Runtime: nodejs12.x
+      CodeUri: s3://yyl-deployment-bucket/lambda/week5/b00c1680357e70b74ed8dfff141a7f07
+      MemorySize: 128
+      Timeout: 3
+  LambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName:
+        Ref: LambdaRoleName
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - lambda.amazonaws.com
+          Action:
+          - sts:AssumeRole
+      Policies:
+      - PolicyName:
+          Ref: LambdaPolicyForLogName
+        PolicyDocument:
+          Version: 2012-10-17
+          Statement:
+          - Effect: Allow
+            Action:
+            - logs:CreateLogGroup
+            - logs:CreateLogStream
+            - logs:PutLogEvents
+            Resource: arn:aws:logs:*:*:log-group:/aws/lambda/*:*
+      - PolicyName:
+          Ref: LambdaPolicyForSQSName
+        PolicyDocument:
+          Version: 2012-10-17
+          Statement:
+          - Effect: Allow
+            Action:
+            - sqs:ReceiveMessage
+            - sqs:DeleteMessage
+            - sqs:GetQueueAttributes
+            Resource:
+              Fn::GetAtt:
+              - MyMessageQueue
+              - Arn
+      Tags:
+      - Key: owner
+        Value: yyl
+  LambdaEventSourceMapping:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      EventSourceArn:
+        Fn::GetAtt:
+        - MyMessageQueue
+        - Arn
+      FunctionName:
+        Ref: MyLambda
